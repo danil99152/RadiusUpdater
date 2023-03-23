@@ -1,0 +1,8 @@
+aiofiles==22.1.0
+requests==2.28.1
+snuggs==1.4.7
+urllib3==1.26.12
+fastapi==0.75.0
+uvicorn==0.18.3
+python-multipart==0.0.5
+psycopg2-binary==2.9.3
