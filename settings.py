@@ -5,7 +5,7 @@ from pydantic.validators import IPv4Address
 
 
 class Settings(BaseSettings):
-    DEBUG: bool = True
+    DEBUG: bool = False
 
     APP_TITLE: constr(min_length=1, max_length=255) = 'ParkinsonAPI'
     APP_VERSION: constr(min_length=1, max_length=15) = '1'
