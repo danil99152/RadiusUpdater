@@ -33,3 +33,5 @@ while true
                         sh ./radius_control_backend/run.sh
                         echo "untar problem"  > log.txt
                 fi
+
+        echo "$(<log.txt )"
