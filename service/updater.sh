@@ -1,7 +1,9 @@
 #!/bin/sh
 
+cd
 cd ..
-cd files/
+cd home/debian/work/cicd
+
 FILE=./radius_control_backend.tar.gz
 while true
   do

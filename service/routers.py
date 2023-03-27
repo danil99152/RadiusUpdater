@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import os
 import subprocess
@@ -7,15 +6,8 @@ from http.client import HTTPException
 import aiofiles
 from fastapi import UploadFile, APIRouter, File
 
-from settings import settings
-
-UPLOAD_DIR = settings.APP_PATH + "/files/"
+UPLOAD_DIR = 'home/debian/work/cicd'
 router = APIRouter(prefix='/file', tags=['file'])
-
-
-# class FileInput(BaseModel):
-#     file: UploadFile = File(default=None)
-#     checksum: str
 
 
 @router.post("/upload/")
