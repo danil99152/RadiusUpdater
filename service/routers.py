@@ -3,10 +3,9 @@ import os
 import subprocess
 from http.client import HTTPException
 
-import aiofiles
 from fastapi import UploadFile, APIRouter, File
 
-UPLOAD_DIR = 'home/debian/work/cicd'
+UPLOAD_DIR = os.path.abspath('').replace('RadiusUpdater', '')+'cicd/radius_control_backend.tar.gz'
 router = APIRouter(prefix='/file', tags=['file'])
 
 
@@ -25,26 +24,24 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
     if file_hash != checksum or not fi.filename.endswith('.tar.gz'):
         raise ValueError(f"File {fi.filename} has an incorrect checksum or format")
 
-    # All files passed the checksum test, so we can save them to the upload directory
-    upload_path = os.path.join(UPLOAD_DIR, fi.filename)
-
     try:
-        await save_file(fi, upload_path)
-        exit_code = subprocess.call('./updater.sh')
-    except Exception:
+        await save_file(fi, UPLOAD_DIR)
+        os.system(f"chmod +x {os.path.abspath('service/updater.sh')}")
+        exit_code = subprocess.call(os.path.abspath('service/updater.sh'))
+    except Exception as e:
         # Delete all files if at least one file fails to load
         upload_path = os.path.join(UPLOAD_DIR, fi.filename)
         if os.path.exists(upload_path):
             os.remove(upload_path)
-        raise HTTPException("Failed to save one or more files to disk")
+        raise HTTPException("Failed to save one or more files to disk:", e)
 
     return {f"message": f"All files were successfully uploaded and {exit_code}"}
 
 
 async def save_file(file, path):
-    async with aiofiles.open(path, "wb") as f:
+    with open(path, 'wb') as f:
         while True:
             chunk = await file.read(8192)
             if not chunk:
                 break
-            await f.write(chunk)
+            f.write(chunk)
