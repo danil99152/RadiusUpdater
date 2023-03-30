@@ -3,7 +3,7 @@ import os
 import shutil
 import signal
 import subprocess
-import tarfile
+import zipfile
 from http.client import HTTPException
 from tempfile import NamedTemporaryFile
 
@@ -16,7 +16,7 @@ router = APIRouter(prefix='/file', tags=['file'])
 
 @router.post("/upload/")
 async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
-    # Calculate the SHA256 hash of the uploaded file
+    # Calculate the SHA512 hash of the uploaded file
     sha512_hash = hashlib.sha512()
     while True:
         chunk = await fi.read(8192)
@@ -26,7 +26,7 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
     file_hash = sha512_hash.hexdigest()
 
     # Compare the calculated hash with the provided checksum
-    if file_hash != checksum or not fi.filename.endswith('.tar.gz'):
+    if file_hash != checksum or not fi.filename.endswith('.zip'):
         raise ValueError(f"File {fi.filename} has an incorrect checksum or format")
 
     try:
@@ -43,9 +43,9 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
 
 
 async def save_file(file, path):
-    with NamedTemporaryFile(delete=False, suffix='.tar.gz', prefix='radius_control_backend', dir=path) as tmp:
+    with NamedTemporaryFile(delete=False, suffix='.zip', prefix='radius_control_backend', dir=path) as tmp:
         shutil.copyfileobj(file.file, tmp)
-        os.rename(tmp.name, path+'radius_control_backend.tar.gz')
+        os.rename(tmp.name, path+'radius_control_backend.zip')
 
 
 def check_int(pid) -> bool:
@@ -53,26 +53,33 @@ def check_int(pid) -> bool:
 
 
 def get_pids():
-    return list(filter(check_int, [
-        requests.get("http://0.0.0.0:5000/ad936x/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/control/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/relays_module/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/dsp/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/ocb/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/attenuators/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/services_module/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/automatic_control/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/server_integration/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/telemetry/get-pid/").text,
-        requests.get("http://0.0.0.0:5000/killer/get-pid/").text,
-    ]))
+    try:
+        return list(filter(check_int, [
+            requests.get("http://0.0.0.0:5000/ad936x/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/control/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/relays_module/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/dsp/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/ocb/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/attenuators/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/services_module/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/automatic_control/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/server_integration/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/telemetry/get-pid/").text,
+            requests.get("http://0.0.0.0:5000/killer/get-pid/").text,
+        ]))
+    finally:
+        return []
 
 
 async def restore_old_project():
     try:
-        os.remove(UPLOAD_DIR + 'radius_control_backend.tar.gz')
+        # Remove archive
+        os.remove(UPLOAD_DIR + 'radius_control_backend.zip')
+        # Remove directory of new project
         shutil.rmtree(UPLOAD_DIR + 'radius_control_backend/')
+        # Rename old directory to radius_control_backend
         os.rename(UPLOAD_DIR + 'backup_radius_control_backend/', UPLOAD_DIR + 'radius_control_backend/')
+        # Run old project
         os.system(f"chmod +x {UPLOAD_DIR + 'radius_control_backend/run.sh'}")
         subprocess.call(UPLOAD_DIR + 'radius_control_backend/run.sh')
     except Exception as e:
@@ -81,6 +88,7 @@ async def restore_old_project():
 
 async def updater():
     try:
+        # Kill all project services
         pids = get_pids()
         [os.kill(eval(pid), signal.SIGTERM) for pid in pids]
         try:
@@ -92,19 +100,20 @@ async def updater():
         raise HTTPException("Failed to kill old service:", e)
 
     try:
-        file = tarfile.open(UPLOAD_DIR + 'radius_control_backend.tar.gz')
-        file.extractall('.')
-        file.close()
+        # Unzipping new
+        with zipfile.ZipFile(UPLOAD_DIR + 'radius_control_backend.zip', 'r') as zip_ref:
+            zip_ref.extractall('.')
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed extract new project:", e)
 
     try:
+        # Run new project
         os.system(f"chmod +x {UPLOAD_DIR + 'radius_control_backend/run.sh'}")
         subprocess.call(UPLOAD_DIR + 'radius_control_backend/run.sh')
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed to run new project:", e)
-
-    shutil.rmtree(UPLOAD_DIR + 'radius_control_backend/')
-    os.remove(UPLOAD_DIR + 'radius_control_backend.tar.gz')
+    # Remove archive and directory of old project
+    os.remove(UPLOAD_DIR + 'radius_control_backend.zip')
+    shutil.rmtree(UPLOAD_DIR + 'backup_radius_control_backend/')
