@@ -5,8 +5,8 @@ import signal
 import subprocess
 import zipfile
 from http.client import HTTPException
-from tempfile import NamedTemporaryFile
 
+import aiofiles as aiofiles
 import requests
 from fastapi import UploadFile, APIRouter, File
 
@@ -43,9 +43,9 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
 
 
 async def save_file(file, path):
-    with NamedTemporaryFile(delete=False, suffix='.zip', prefix='radius_control_backend', dir=path) as tmp:
-        shutil.copyfileobj(file.file, tmp)
-        os.rename(tmp.name, path+'radius_control_backend.zip')
+    async with aiofiles.open(os.path.join(path, 'radius_control_backend.zip'), 'wb') as out_file:
+        while content := await file.read(1024):  # async read chunk
+            await out_file.write(content)  # async write chunk
 
 
 def check_int(pid) -> bool:
@@ -74,14 +74,15 @@ def get_pids():
 async def restore_old_project():
     try:
         # Remove archive
-        os.remove(UPLOAD_DIR + 'radius_control_backend.zip')
+        os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
         # Remove directory of new project
-        shutil.rmtree(UPLOAD_DIR + 'radius_control_backend/')
+        shutil.rmtree(os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
         # Rename old directory to radius_control_backend
-        os.rename(UPLOAD_DIR + 'backup_radius_control_backend/', UPLOAD_DIR + 'radius_control_backend/')
+        os.rename(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'),
+                  os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
         # Run old project
-        os.system(f"chmod +x {UPLOAD_DIR + 'radius_control_backend/run.sh'}")
-        subprocess.call(UPLOAD_DIR + 'radius_control_backend/run.sh')
+        os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
+        subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
     except Exception as e:
         raise HTTPException("Failed restore old project:", e)
 
@@ -92,7 +93,8 @@ async def updater():
         pids = get_pids()
         [os.kill(eval(pid), signal.SIGTERM) for pid in pids]
         try:
-            os.rename(UPLOAD_DIR + 'radius_control_backend/', UPLOAD_DIR + 'backup_radius_control_backend/')
+            os.rename(os.path.join(UPLOAD_DIR, 'radius_control_backend/'),
+                      os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
         except Exception as e:
             print(e)
     except Exception as e:
@@ -101,19 +103,19 @@ async def updater():
 
     try:
         # Unzipping new
-        with zipfile.ZipFile(UPLOAD_DIR + 'radius_control_backend.zip', 'r') as zip_ref:
-            zip_ref.extractall('.')
+        with zipfile.ZipFile(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'), 'r') as zip_ref:
+            zip_ref.extractall(UPLOAD_DIR)
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed extract new project:", e)
 
     try:
         # Run new project
-        os.system(f"chmod +x {UPLOAD_DIR + 'radius_control_backend/run.sh'}")
-        subprocess.call(UPLOAD_DIR + 'radius_control_backend/run.sh')
+        os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
+        subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed to run new project:", e)
     # Remove archive and directory of old project
-    os.remove(UPLOAD_DIR + 'radius_control_backend.zip')
-    shutil.rmtree(UPLOAD_DIR + 'backup_radius_control_backend/')
+    os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
+    shutil.rmtree(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
