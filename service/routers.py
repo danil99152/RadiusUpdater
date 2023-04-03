@@ -42,6 +42,7 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
 
 async def save_file(file, path):
     async with aiofiles.open(os.path.join(path, 'radius_control_backend.zip'), 'wb') as out_file:
+        # TODO change size of batch to check download speed
         while content := await file.read(1024):  # async read chunk
             await out_file.write(content)  # async write chunk
 
