@@ -18,29 +18,25 @@ router = APIRouter(prefix='/file', tags=['file'])
 
 @router.post("/upload/")
 async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
-    # Calculate the SHA512 hash of the uploaded file
-    sha512_hash = hashlib.sha512()
-    while True:
-        chunk = await fi.read(8192)
-        if not chunk:
-            break
-        sha512_hash.update(chunk)
-    file_hash = sha512_hash.hexdigest()
-
-    # Compare the calculated hash with the provided checksum
-    if file_hash != checksum or not fi.filename.endswith('.zip'):
-        raise ValueError(f"File {fi.filename} has an incorrect checksum or format")
-
     try:
         await save_file(fi, UPLOAD_DIR)
-        await updater()
     except Exception as e:
         # Delete all files if at least one file fails to load
         upload_path = os.path.join(UPLOAD_DIR, fi.filename)
         if os.path.exists(upload_path):
             os.remove(upload_path)
         raise HTTPException("Failed to save one or more files to disk:", e)
+    # Calculate the SHA512 hash of the uploaded file
+    file_hash = hashlib.sha512(open(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'),'rb').read()).hexdigest()
 
+    # Compare the calculated hash with the provided checksum
+    if file_hash != checksum or not fi.filename.endswith('.zip'):
+        upload_path = os.path.join(UPLOAD_DIR, fi.filename)
+        if os.path.exists(upload_path):
+            os.remove(upload_path)
+        raise ValueError(f"File {fi.filename} has an incorrect checksum or format")
+
+    await updater()
     return {f"message": f"All files were successfully uploaded"}
 
 
