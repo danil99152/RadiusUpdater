@@ -10,7 +10,9 @@ import aiofiles as aiofiles
 import requests
 from fastapi import UploadFile, APIRouter, File
 
-UPLOAD_DIR = os.path.abspath('').replace('RadiusUpdater', '') + 'cicd/'
+from settings import settings
+
+UPLOAD_DIR = settings.UPLOAD_DIR
 router = APIRouter(prefix='/file', tags=['file'])
 
 
@@ -48,58 +50,64 @@ async def save_file(file, path):
             await out_file.write(content)  # async write chunk
 
 
-def check_int(pid) -> bool:
-    return isinstance(pid, int)
 
-
-def get_pids():
-    try:
-        return list(filter(check_int, [
-            requests.get("http://0.0.0.0:5000/ad936x/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/control/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/relays_module/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/dsp/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/ocb/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/attenuators/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/services_module/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/automatic_control/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/server_integration/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/telemetry/get-pid/").text,
-            requests.get("http://0.0.0.0:5000/killer/get-pid/").text,
-        ]))
-    finally:
-        return []
+async def kill_services():
+    kill_urls = [
+            "http://127.0.0.1:5000/ad936x/kill-service/",
+            "http://127.0.0.1:5000/control/kill-service/",
+            "http://127.0.0.1:5000/relays_module/kill-service/",
+            "http://127.0.0.1:5000/dsp/kill-service/",
+            "http://127.0.0.1:5000/ocb/kill-service/",
+            "http://127.0.0.1:5000/attenuators/kill-service/",
+            "http://127.0.0.1:5000/services_module/kill-service/",
+            "http://127.0.0.1:5000/automatic_control/kill-service/",
+            "http://127.0.0.1:5000/server_integration/kill-service/",
+            "http://127.0.0.1:5000/telemetry/kill-service/",
+            "http://127.0.0.1:5000/killer/kill-service/",
+        ]
+    for url in kill_urls:
+        try:
+            requests.get(url)
+        except:
+            continue
 
 
 async def restore_old_project():
     try:
         # Remove archive
-        os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
+        try:
+            os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
+        except Exception as e:
+            print(e)
         # Remove directory of new project
-        shutil.rmtree(os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+        try:
+            shutil.rmtree(os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+        except Exception as e:
+            print(e)
         # Rename old directory to radius_control_backend
-        os.rename(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'),
-                  os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+        try:
+            os.rename(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'),
+                      os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+        except Exception as e:
+            print(e)
         # Run old project
-        os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
-        subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
+        try:
+            os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
+            subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
+        except Exception as e:
+            print(e)
     except Exception as e:
         raise HTTPException("Failed restore old project:", e)
 
 
 async def updater():
+    # Kill all project services
+    await kill_services()
     try:
-        # Kill all project services
-        pids = get_pids()
-        [os.kill(eval(pid), signal.SIGTERM) for pid in pids]
-        try:
-            os.rename(os.path.join(UPLOAD_DIR, 'radius_control_backend/'),
-                      os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
-        except Exception as e:
-            print(e)
+        os.rename(os.path.join(UPLOAD_DIR, 'radius_control_backend/'),
+                  os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
     except Exception as e:
-        await restore_old_project()
-        raise HTTPException("Failed to kill old service:", e)
+        print(e)
 
     try:
         # Unzipping new

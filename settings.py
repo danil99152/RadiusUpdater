@@ -1,3 +1,4 @@
+import os
 import pathlib
 
 from pydantic import BaseSettings, conint, constr
@@ -13,7 +14,7 @@ class Settings(BaseSettings):
     APP_PORT: conint(ge=0) = 5001
     APP_PATH: constr(min_length=1, max_length=255) = str(pathlib.Path(__file__).parent.resolve())
 
-    MODEL_REQUEST_QUEUE: constr(min_length=1, max_length=255) = 'MODEL_REQUEST_QUEUE'
+    UPLOAD_DIR = "/home/debian/rcs/software/"
 
 
 settings = Settings()
