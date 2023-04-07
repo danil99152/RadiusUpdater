@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     APP_PORT: conint(ge=0) = 5001
     APP_PATH: constr(min_length=1, max_length=255) = str(pathlib.Path(__file__).parent.resolve())
 
-    UPLOAD_DIR = "/home/debian/rcs/software/"
+    UPLOAD_DIR = "/home/debian/rcs/"
 
 
 settings = Settings()

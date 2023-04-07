@@ -1,7 +1,6 @@
 import hashlib
 import os
 import shutil
-import signal
 import subprocess
 import zipfile
 from http.client import HTTPException
@@ -67,30 +66,34 @@ async def kill_services():
             requests.get(url)
         except:
             continue
+    os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh')}")
+    subprocess.call(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh'))
 
 
 async def restore_old_project():
     try:
         # Remove archive
         try:
-            os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
+            os.remove(os.path.join(UPLOAD_DIR, 'software/radius_control_backend.zip'))
         except Exception as e:
             print(e)
         # Remove directory of new project
         try:
-            shutil.rmtree(os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+            shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
         except Exception as e:
             print(e)
         # Rename old directory to radius_control_backend
         try:
-            os.rename(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'),
-                      os.path.join(UPLOAD_DIR, 'radius_control_backend/'))
+            os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'),
+                      os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
         except Exception as e:
             print(e)
         # Run old project
         try:
-            os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
-            subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
+            os.system(
+                f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/start_all_services.sh')}")
+            subprocess.call(
+                os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/start_all_services.sh'))
         except Exception as e:
             print(e)
     except Exception as e:
@@ -101,8 +104,8 @@ async def updater():
     # Kill all project services
     await kill_services()
     try:
-        os.rename(os.path.join(UPLOAD_DIR, 'radius_control_backend/'),
-                  os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
+        os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'),
+                  os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
     except Exception as e:
         print(e)
 
@@ -110,17 +113,23 @@ async def updater():
         # Unzipping new
         with zipfile.ZipFile(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'), 'r') as zip_ref:
             zip_ref.extractall(UPLOAD_DIR)
+        shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_backend'),
+                    (os.path.join(f'{UPLOAD_DIR}', 'software/radius_control_backend')))
+        os.rename(os.path.join(UPLOAD_DIR, 'venv/'),
+                  os.path.join(UPLOAD_DIR, 'python3.10/'))
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed extract new project:", e)
 
     try:
         # Run new project
-        os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh')}")
-        subprocess.call(os.path.join(UPLOAD_DIR, 'radius_control_backend/run.sh'))
+        os.system(
+            f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/start_all_services.sh')}")
+        subprocess.call(os.path.join(UPLOAD_DIR,
+                                     'software/radius_control_backend/common/third_party/start_all_services.sh'))
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed to run new project:", e)
     # Remove archive and directory of old project
     os.remove(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'))
-    shutil.rmtree(os.path.join(UPLOAD_DIR, 'backup_radius_control_backend/'))
+    shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
