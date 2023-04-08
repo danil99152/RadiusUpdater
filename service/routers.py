@@ -35,7 +35,7 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
             os.remove(upload_path)
         raise ValueError(f"File {fi.filename} has an incorrect checksum or format")
 
-    await updater()
+    # await updater()
     return {f"message": f"All files were successfully uploaded"}
 
 
@@ -66,8 +66,8 @@ async def kill_services():
             requests.get(url)
         except:
             continue
-    os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh')}")
-    subprocess.call(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh'))
+    # os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh')}")
+    # subprocess.call(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh'))
 
 
 async def restore_old_project():
@@ -115,8 +115,11 @@ async def updater():
             zip_ref.extractall(UPLOAD_DIR)
         shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_backend'),
                     (os.path.join(f'{UPLOAD_DIR}', 'software/radius_control_backend')))
-        os.rename(os.path.join(UPLOAD_DIR, 'venv/'),
-                  os.path.join(UPLOAD_DIR, 'python3.10/'))
+        try:
+            os.rename(os.path.join(UPLOAD_DIR, 'venv/'),
+                      os.path.join(UPLOAD_DIR, 'python3.10/'))
+        except Exception as e:
+            print(e)
     except Exception as e:
         await restore_old_project()
         raise HTTPException("Failed extract new project:", e)
