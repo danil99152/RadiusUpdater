@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="root@78.25.88.137:22 password" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="root@37.29.45.168:22 password" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
     <option name="confirmBeforeUploading" value="false" />
     <serverData>
       <paths name="root@37.29.45.168:22 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/debian/work/RadiusUpdater" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/debian/rcs/software/RadiusUpdater" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
