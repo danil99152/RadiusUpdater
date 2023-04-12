@@ -26,7 +26,8 @@ async def upload_files(checksum: str, fi: UploadFile = File(default=None)):
             os.remove(upload_path)
         raise HTTPException("Failed to save one or more files to disk:", e)
     # Calculate the SHA512 hash of the uploaded file
-    file_hash = hashlib.sha512(open(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'),'rb').read()).hexdigest()
+    file_hash = hashlib.sha512(open(os.path.join(UPLOAD_DIR, 'radius_control_backend.zip'), 'rb').read()).hexdigest()
+
 
     # Compare the calculated hash with the provided checksum
     if file_hash != checksum or not fi.filename.endswith('.zip'):
@@ -48,26 +49,26 @@ async def save_file(file, path):
 
 
 async def kill_services():
-    kill_urls = [
-            "http://127.0.0.1:5000/ad936x/kill-service/",
-            "http://127.0.0.1:5000/control/kill-service/",
-            "http://127.0.0.1:5000/relays_module/kill-service/",
-            "http://127.0.0.1:5000/dsp/kill-service/",
-            "http://127.0.0.1:5000/ocb/kill-service/",
-            "http://127.0.0.1:5000/attenuators/kill-service/",
-            "http://127.0.0.1:5000/services_module/kill-service/",
-            "http://127.0.0.1:5000/automatic_control/kill-service/",
-            "http://127.0.0.1:5000/server_integration/kill-service/",
-            "http://127.0.0.1:5000/telemetry/kill-service/",
-            "http://127.0.0.1:5000/killer/kill-service/",
-        ]
-    for url in kill_urls:
-        try:
-            requests.get(url)
-        except:
-            continue
-    # os.system(f"chmod +x {os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh')}")
-    # subprocess.call(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh'), shell=True)
+    kills = [
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_software_dma_server"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/ad936x/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/attenuators/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/automatic_control/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/control/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/dsp/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_frontend/main.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/killer/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/main.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/ocb/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/relays_module/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/services_module/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/telemetry/run.py"',
+        'sudo pkill -SIGKILL -f "/home/debian/rcs/software/radius_control_backend/services/server_integration/run.py"'
+    ]
+    for cmd in kills:
+        os.system(cmd)
+
+    os.system(f'sudo sh {UPLOAD_DIR}software/radius_control_backend/common/third_party/stop_all_services.sh')
 
 
 async def restore_old_project(filename):
@@ -102,10 +103,10 @@ async def restore_old_project(filename):
                 except Exception as e:
                     print(e)
             if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server')):
-                shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'))
+                shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server'))
                 try:
-                    os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'),
-                              os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'))
+                    os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server'),
+                              os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server'))
                 except Exception as e:
                     print(e)
         except Exception as e:
@@ -158,8 +159,8 @@ async def updater(filename):
                         (os.path.join(UPLOAD_DIR, 'software/radius_control_frontend')))
         if os.path.isfile(os.path.join(UPLOAD_DIR, 'radius_control_software_dma_server')):
             try:
-                os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'),
-                          os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'))
+                os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server'),
+                          os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server'))
             except Exception as e:
                 # Exception is always in renaming, but it works
                 print(e)
@@ -186,6 +187,8 @@ async def updater(filename):
         shutil.rmtree(os.path.join(UPLOAD_DIR, 'backup_python3.10/'))
     if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/')):
         shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/'))
-    if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/')):
-        shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'))
+    if os.path.isfile(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server')):
+        os.remove(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server'))
+
+    os.system('sudo chmod 777 -R /home/debian/rcs/')
     os.system("sudo reboot")
