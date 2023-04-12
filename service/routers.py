@@ -70,7 +70,7 @@ async def kill_services():
     # subprocess.call(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/common/third_party/stop_all_services.sh'), shell=True)
 
 
-async def restore_old_project(filename, venv=False):
+async def restore_old_project(filename):
     try:
         # Remove archive
         try:
@@ -79,21 +79,35 @@ async def restore_old_project(filename, venv=False):
             print(e)
         # Remove directory of new project and venv
         try:
-            shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
-            if venv:
+            if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend')):
+                shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
+                # Rename old directory to radius_control_ and venv
+                try:
+                    os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'),
+                              os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
+                except Exception as e:
+                    print(e)
+            if os.path.exists(os.path.join(UPLOAD_DIR, 'backup_python3.10')):
                 shutil.rmtree(os.path.join(UPLOAD_DIR, 'python3.10/'))
-        except Exception as e:
-            print(e)
-        # Rename old directory to radius_control_backend and venv
-        try:
-            os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'),
-                      os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'))
-        except Exception as e:
-            print(e)
-        try:
-            if venv:
-                os.rename(os.path.join(UPLOAD_DIR, 'backup_python3.10/'),
-                          os.path.join(UPLOAD_DIR, 'python3.10/'))
+                try:
+                    os.rename(os.path.join(UPLOAD_DIR, 'backup_python3.10/'),
+                              os.path.join(UPLOAD_DIR, 'python3.10/'))
+                except Exception as e:
+                    print(e)
+            if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend')):
+                shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_frontend/'))
+                try:
+                    os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/'),
+                              os.path.join(UPLOAD_DIR, 'software/radius_control_frontend/'))
+                except Exception as e:
+                    print(e)
+            if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server')):
+                shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'))
+                try:
+                    os.rename(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'),
+                              os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'))
+                except Exception as e:
+                    print(e)
         except Exception as e:
             print(e)
         # Run old project
@@ -111,32 +125,48 @@ async def restore_old_project(filename, venv=False):
 async def updater(filename):
     # Kill all project services
     await kill_services()
-    try:
-        os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'),
-                  os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
-    except Exception as e:
-        # Exception is always in renaming, but it works
-        print(e)
 
     try:
         # Unzipping new
         with zipfile.ZipFile(os.path.join(UPLOAD_DIR, filename), 'r') as zip_ref:
             zip_ref.extractall(UPLOAD_DIR)
-        shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_backend'),
-                    (os.path.join(f'{UPLOAD_DIR}', 'software/radius_control_backend')))
-        try:
-            if os.path.exists(os.path.join(UPLOAD_DIR, 'venv/')):
+        if os.path.exists(os.path.join(UPLOAD_DIR, 'radius_control_backend')):
+            try:
+                os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_backend/'),
+                          os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
+            except Exception as e:
+                # Exception is always in renaming, but it works
+                print(e)
+            shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_backend'),
+                        (os.path.join(UPLOAD_DIR, 'software/radius_control_backend')))
+        if os.path.exists(os.path.join(UPLOAD_DIR, 'venv')):
+            try:
                 os.rename(os.path.join(UPLOAD_DIR, 'python3.10/'),
                           os.path.join(UPLOAD_DIR, 'backup_python3.10/'))
                 os.rename(os.path.join(UPLOAD_DIR, 'venv/'),
                           os.path.join(UPLOAD_DIR, 'python3.10/'))
-        except Exception as e:
-            print(e)
+            except Exception as e:
+                print(e)
+        if os.path.exists(os.path.join(UPLOAD_DIR, 'radius_control_frontend')):
+            try:
+                os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_frontend/'),
+                          os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/'))
+            except Exception as e:
+                # Exception is always in renaming, but it works
+                print(e)
+            shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_frontend'),
+                        (os.path.join(UPLOAD_DIR, 'software/radius_control_frontend')))
+        if os.path.isfile(os.path.join(UPLOAD_DIR, 'radius_control_software_dma_server')):
+            try:
+                os.rename(os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server/'),
+                          os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'))
+            except Exception as e:
+                # Exception is always in renaming, but it works
+                print(e)
+            shutil.move(os.path.join(UPLOAD_DIR, 'radius_control_software_dma_server'),
+                        (os.path.join(UPLOAD_DIR, 'software/radius_control_software_dma_server')))
     except Exception as e:
-        venv = False
-        if os.path.exists(os.path.join(UPLOAD_DIR, 'backup_python3.10/')):
-            venv = True
-        await restore_old_project(filename, venv=venv)
+        os.remove(os.path.join(UPLOAD_DIR, filename))
         raise HTTPException("Failed extract new project:", e)
 
     try:
@@ -146,14 +176,16 @@ async def updater(filename):
         subprocess.call(os.path.join(UPLOAD_DIR,
                                      'software/radius_control_backend/common/third_party/start_all_services.sh'), shell=True)
     except Exception as e:
-        venv = False
-        if os.path.exists(os.path.join(UPLOAD_DIR, 'backup_python3.10/')):
-            venv = True
-        await restore_old_project(filename, venv=venv)
+        await restore_old_project(filename)
         raise HTTPException("Failed to run new project:", e)
     # Remove archive and directory of old project
     os.remove(os.path.join(UPLOAD_DIR, filename))
-    shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
+    if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/')):
+        shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_backend/'))
     if os.path.exists(os.path.join(UPLOAD_DIR, 'backup_python3.10/')):
         shutil.rmtree(os.path.join(UPLOAD_DIR, 'backup_python3.10/'))
+    if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/')):
+        shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_frontend/'))
+    if os.path.exists(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/')):
+        shutil.rmtree(os.path.join(UPLOAD_DIR, 'software/backup_radius_control_software_dma_server/'))
     os.system("sudo reboot")
